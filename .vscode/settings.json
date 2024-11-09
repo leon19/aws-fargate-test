@@ -1,0 +1,23 @@
+{
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Current TS File",
+        "type": "node",
+        "request": "launch",
+        "args": ["${relativeFile}"],
+        "runtimeArgs": ["--loader", "ts-node/esm", "--no-warnings"],
+        "sourceMaps": true,
+        "cwd": "${workspaceRoot}"
+      }
+    ]
+  },
+  "prettier.enable": true,
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
+}

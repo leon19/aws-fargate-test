@@ -1,0 +1,46 @@
+{
+  "name": "fargate-test",
+  "version": "0.0.0-development",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "UNLICENSED",
+  "author": {
+    "email": "lorensleon@gmail.com",
+    "name": "Lorens León"
+  },
+  "type": "module",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build:dev": "tsc",
+    "build": "tsc --project tsconfig.build.json",
+    "clean": "rm -rf .tmp dist",
+    "test": "node --env-file .test.env --test 'src/**/*.test.ts'",
+    "cover": "c8 node --run test",
+    "lint": "biome check --write --unsafe src && prettier --write '*.md'",
+    "prepublishOnly": "node --run clean && node --run build",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@types/node": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "c8": "^10.1.2",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "semantic-release": "^24.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ]
+  }
+}
