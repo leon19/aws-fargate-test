@@ -24,7 +24,7 @@ Resources:
       CidrBlock: !FindInMap ["SubnetConfig", "VPC", "CIDR"]
       Tags:
         - Key: Name
-          Value: VPC
+          Value: !Sub ${AWS::StackName}-vpc
 
   # VPC Internet Gateway and Attachment
   VPCInternetGateway:
@@ -32,7 +32,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: VPC Internet Gateway
+          Value: !Sub ${AWS::StackName}-vpc-internet-gateway
 
   VPCInternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -53,7 +53,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: Public Subnet 1
+          Value: !Sub ${AWS::StackName}-public-subnet-1
 
   PublicSubnet1RouteTable:
     Type: AWS::EC2::RouteTable
@@ -61,7 +61,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: Public Subnet 1 Route Table
+          Value: !Sub ${AWS::StackName}-public-subnet-1-route-table
 
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -92,7 +92,7 @@ Resources:
         Ref: PublicSubnet1
       Tags:
         - Key: Name
-          Value: Public Subnet 1 Nat Gateway
+          Value: !Sub ${AWS::StackName}-public-subnet-1-nat-gateway
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -106,7 +106,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: Public Subnet 2
+          Value: !Sub ${AWS::StackName}-public-subnet-2
 
   PublicSubnet2RouteTable:
     Type: AWS::EC2::RouteTable
@@ -115,7 +115,7 @@ Resources:
         Ref: "VPC"
       Tags:
         - Key: Name
-          Value: Public Subnet 2 Route Table
+          Value: !Sub ${AWS::StackName}-public-subnet-2-route-table
 
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -145,7 +145,7 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       Tags:
         - Key: Name
-          Value: Public Subnet 2 Nat Gateway
+          Value: !Sub ${AWS::StackName}-public-subnet-2-nat-gateway
 
   # Private Subnets
   PrivateSubnet1:
@@ -159,7 +159,7 @@ Resources:
       CidrBlock: !FindInMap ["SubnetConfig", "Private1", "CIDR"]
       Tags:
         - Key: Name
-          Value: Subnet-One
+          Value: !Sub ${AWS::StackName}-subnet-one
 
   Private1RouteTable:
     Type: AWS::EC2::RouteTable
@@ -167,7 +167,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: rt-1
+          Value: !Sub ${AWS::StackName}-route-table-1
 
   Private1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -193,7 +193,7 @@ Resources:
       CidrBlock: !FindInMap ["SubnetConfig", "Private2", "CIDR"]
       Tags:
         - Key: Name
-          Value: Subnet-Two
+          Value: !Sub ${AWS::StackName}-subnet-two
 
   Private2RouteTable:
     Type: AWS::EC2::RouteTable
@@ -201,7 +201,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: rt-2
+          Value: !Sub ${AWS::StackName}-route-table-2
 
   Private2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -221,7 +221,7 @@ Resources:
     DependsOn: VPCInternetGateway
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: public-http-lb
+      Name: public-lb
       Scheme: internet-facing
       SecurityGroups:
         - !Ref PublicHTTPSecurityGroup
@@ -237,6 +237,8 @@ Resources:
       HealthCheckIntervalSeconds: 10 # Default is 30.
       HealthyThresholdCount: 2       # Default is 5.
       HealthCheckTimeoutSeconds: 5
+      HealthCheckEnabled: true
+      HealthCheckPath: "/healthz"
       Name: public-tg
       VpcId: !Ref VPC
       Protocol: HTTP

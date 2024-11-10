@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS Fargate with VPC, ALB, and ECR
+Description: AWS Fargate with VPC and ALB
 
 Parameters:
   ImageName:
@@ -10,27 +10,23 @@ Parameters:
     Description: Tag of the image. The version of the service
     Type: String
 
-Globals:
-  Function:
-    Timeout: 3
-    MemorySize: 128
-
 Resources:
   VPC:
     Type: AWS::Serverless::Application
     Properties:
-      Location: ./vpc.yml
+      Location: ./template-vpc.yml
 
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
+      ClusterName: !Sub ${AWS::StackName}-hello-world
       CapacityProviders:
         - FARGATE
 
   Service:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: "fargate-test"
+      ServiceName: !Sub ${AWS::StackName}-hello-world
       Cluster: !Ref Cluster
       LaunchType: FARGATE
       EnableExecuteCommand: true
@@ -47,16 +43,16 @@ Resources:
       DesiredCount: 1
       TaskDefinition: !Ref "TaskDefinition"
       LoadBalancers:
-        - ContainerName: "fargate-test"
+        - ContainerName: !Sub ${AWS::StackName}-hello-world
           ContainerPort: 3000
           TargetGroupArn: !GetAtt VPC.Outputs.LB
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: FargateTest
-      Cpu: 512
-      Memory: 256
+      Family: !Sub ${AWS::StackName}-hello-world
+      Cpu: 256
+      Memory: 512
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -65,12 +61,23 @@ Resources:
       RuntimePlatform:
         CpuArchitecture: ARM64
       ContainerDefinitions:
-        - Name: fargate-test
-          Cpu: 512
-          Memory: 256
+        - Name: !Sub ${AWS::StackName}-hello-world
+          Cpu: 256
+          Memory: 512
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ImageName}:${ImageTag}"
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - node dist/scripts/healthcheck.js
+            Interval: 10
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 5
           PortMappings:
             - ContainerPort: 3000
+          Environment:
+            - Name: NODE_ENV
+              Value: production
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -111,7 +118,7 @@ Resources:
   ServiceScalingPolicyMem:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub ${AWS::StackName}-target-tracking-mem79
+      PolicyName: !Sub ${AWS::StackName}-target-tracking-mem70
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref ECSScalableTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -124,11 +131,12 @@ Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /fargatelogs
+      LogGroupName: !Sub /ecs/fargate/${AWS::StackName}-hello-world
 
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${AWS::StackName}-hello-world-ecs-task-execution-role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -147,6 +155,7 @@ Resources:
   ECSTaskRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${AWS::StackName}-hello-world-ecs-task-role
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow

@@ -13,11 +13,11 @@ Inspired from [this](https://containersonaws.com/pattern/sam-fargate) blog post.
 ## Deploy
 
 ```bash
-bash sam-deploy.sh
+bash aws-sam.sh deploy
 ```
 
 ## Destroy
 
 ```bash
-bash sam-destroy.sh
+bash aws-sam.sh destroy
 ```

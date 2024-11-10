@@ -36,6 +36,7 @@ ENV NODE_ENV=development
 WORKDIR /app
 
 COPY src /app/src
+COPY package.json /app/package.json
 COPY tsconfig.json /app/tsconfig.json
 COPY tsconfig.build.json /app/tsconfig.build.json
 
@@ -57,7 +58,7 @@ RUN npm install --omit=dev
 RUN chown -R node:node /app
 USER node
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=30s --start-period=5s --retries=3 \
     CMD ["node", "dist/scripts/healthcheck.js"]
 
 CMD ["node", "dist/index.js"]
