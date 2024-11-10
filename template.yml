@@ -35,6 +35,7 @@ Resources:
       LaunchType: FARGATE
       EnableExecuteCommand: true
       HealthCheckGracePeriodSeconds: 5
+      SchedulingStrategy: REPLICA
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -54,8 +55,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: FargateTest
-      Cpu: 1024
-      Memory: 8192
+      Cpu: 512
+      Memory: 256
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -65,8 +66,8 @@ Resources:
         CpuArchitecture: ARM64
       ContainerDefinitions:
         - Name: fargate-test
-          Cpu: 1024
-          Memory: 8192
+          Cpu: 512
+          Memory: 256
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ImageName}:${ImageTag}"
           PortMappings:
             - ContainerPort: 3000
@@ -78,6 +79,47 @@ Resources:
               awslogs-group: !Ref LogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: containerlog
+
+  ECSScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 4
+      MinCapacity: 1
+      RoleARN:
+        Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      ServiceNamespace: ecs
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ResourceId: !Join
+        - /
+        - - service
+          - !Ref Cluster
+          - !GetAtt Service.Name
+
+  ServiceScalingPolicyCPU:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-target-tracking-cpu70
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ECSScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 180
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+
+  ServiceScalingPolicyMem:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-target-tracking-mem79
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ECSScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 180
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
 
   LogGroup:
     Type: AWS::Logs::LogGroup
