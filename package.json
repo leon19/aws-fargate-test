@@ -25,7 +25,8 @@
     "docker:start": "docker run -it --rm --name $(jq < package.json -r .name) -p 3000:3000 $(jq < package.json -r .name):$(jq < package.json -r .version)"
   },
   "dependencies": {
-    "@types/node": "*"
+    "@types/node": "*",
+    "@valkey/valkey-glide": "^1.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

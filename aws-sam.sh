@@ -88,20 +88,28 @@ sam.destroy() {
 
   # Delete the SAM application
   echo "Deleting the application: $STACK_NAME"
-#  sam delete --stack-name "$STACK_NAME" --no-prompts
+  sam delete --stack-name "$STACK_NAME" --no-prompts
 
   # Delete the ECR repository and its contents
   if [ "$no_ecr" -eq 0 ]; then
     echo "Deleting the ECR repository: $DOCKER_REPO_URL/$DOCKER_IMAGE_NAME"
-#    aws ecr delete-repository --repository-name "$DOCKER_IMAGE_NAME" --force
+    aws ecr delete-repository --repository-name "$DOCKER_IMAGE_NAME" --force
   fi
 }
 
+sam.outputs() {
+  sam list stack-outputs --stack-name "$STACK_NAME"
+}
 
 ecs.redeploy() {
   # Update the ECS service with the new task definition
-  cluster=$(sam list stack-outputs --stack-name "$STACK_NAME" --output json |  jq -r '.[] | select(.OutputKey == "ClusterName") | .OutputValue')
-  service=$(sam list stack-outputs --stack-name "$STACK_NAME" --output json |  jq -r '.[] | select(.OutputKey == "ServiceName") | .OutputValue')
+  outputs=$(sam list stack-outputs --stack-name "$STACK_NAME" --output json)
+
+  cluster=$(echo "$outputs" | jq -r '.[] | select(.OutputKey == "ClusterName") | .OutputValue')
+  service=$(echo "$outputs" | jq -r '.[] | select(.OutputKey == "ServiceName") | .OutputValue')
+
+  echo "Updating ECS service: $service in cluster: $cluster"
+
   aws ecs update-service \
     --cluster "$cluster" \
     --service "$service" \
@@ -129,6 +137,9 @@ main() {
       ;;
     redeploy)
       ecs.redeploy "${@:2}"
+      ;;
+    outputs)
+      sam.outputs
       ;;
     help)
       help

@@ -1,6 +1,7 @@
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 import { performance } from 'node:perf_hooks';
 import { URL } from 'node:url';
+import { requestStore } from './store.js';
 
 const server = createServer(handleRequest);
 
@@ -22,15 +23,31 @@ function handleRequest(request: IncomingMessage, response: ServerResponse) {
     helloWorld(response);
   }
 
-  response.once('finish', () => {
-    const duration = durationToHumanReadable(performance.now() - start);
+  if (url.pathname === '/requests') {
+    getAllRequests(response);
+  }
+
+  response.once('finish', async () => {
+    const duration = performance.now() - start;
+    const readableDuration = durationToHumanReadable(duration);
     const time = new Date().toISOString();
-    const method = request.method;
+    const method = request.method?.toUpperCase() ?? 'GET';
     const path = url.pathname;
     const status = response.statusCode;
 
     // biome-ignore lint/suspicious/noConsoleLog: Allow console.log for request duration
-    console.log(`[${time}] ${method} ${path} ${status} ${duration}`);
+    console.log(`[${time}] ${method} ${path} ${status} ${readableDuration}`);
+
+    try {
+      await requestStore.saveOne({
+        path,
+        method,
+        duration,
+      });
+    } catch (err) {
+      // biome-ignore lint/suspicious/noConsoleLog: Allow console.log for error handling
+      console.log('Failed to save request', err);
+    }
   });
 }
 
@@ -47,6 +64,19 @@ function helloWorld(response: ServerResponse<IncomingMessage>): void {
   response.writeHead(200);
 
   response.write(JSON.stringify({ message: 'Hello, World!' }));
+  response.end();
+}
+
+async function getAllRequests(response: ServerResponse<IncomingMessage>): Promise<void> {
+  const requests = await requestStore.findAll().catch(err => ({
+    error: err.message,
+    stack: err.stack,
+  }));
+
+  response.setHeader('Content-Type', 'application/json');
+  response.writeHead(200);
+
+  response.write(JSON.stringify(requests));
   response.end();
 }
 
