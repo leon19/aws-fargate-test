@@ -56,13 +56,45 @@ sam.deploy() {
   sam list stack-outputs --stack-name "$STACK_NAME"
 }
 
+sam.destroy.help() {
+  echo "Usage: $0 destroy [options]"
+  echo
+  echo "Options:"
+  echo "  -e, --no-ecr  Delete the ECR repository and its contents"
+}
+
+sam.destroy.opts() {
+  no_ecr=0
+
+  while [ $# -gt 0 ] ; do
+    case $1 in
+      -e | --no-ecr)
+        no_ecr=1
+        ;;
+      *)
+        echo "Invalid option: $1"
+        echo
+        sam.destroy.help
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
+
 
 sam.destroy() {
+  sam.destroy.opts "$@"
+
   # Delete the SAM application
-  sam delete --stack-name "$STACK_NAME" --no-prompts
+  echo "Deleting the application: $STACK_NAME"
+#  sam delete --stack-name "$STACK_NAME" --no-prompts
 
   # Delete the ECR repository and its contents
-  aws ecr delete-repository --repository-name "$DOCKER_IMAGE_NAME" --force
+  if [ "$no_ecr" -eq 0 ]; then
+    echo "Deleting the ECR repository: $DOCKER_REPO_URL/$DOCKER_IMAGE_NAME"
+#    aws ecr delete-repository --repository-name "$DOCKER_IMAGE_NAME" --force
+  fi
 }
 
 
@@ -79,6 +111,14 @@ ecs.redeploy() {
 }
 
 
+help() {
+  echo "Usage: $0 {deploy|destroy|redeploy}"
+  echo
+  echo "  deploy   - Deploy the application"
+  echo "  destroy  - Destroy the application"
+  echo "  redeploy - Recreate the existing ECS task"
+}
+
 main() {
   case "$1" in
     deploy)
@@ -90,8 +130,11 @@ main() {
     redeploy)
       ecs.redeploy "${@:2}"
       ;;
+    help)
+      help
+      ;;
     *)
-      echo "Usage: $0 {deploy|destroy}"
+      help
       exit 1
       ;;
   esac
