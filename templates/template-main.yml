@@ -21,7 +21,6 @@ Resources:
   Service:
     Type: AWS::ECS::Service
     DependsOn:
-      - PublicLoadBalancer
       - MemoryDBCluster
     Properties:
       ServiceName: !Sub ${AWS::StackName}-hello-world
@@ -34,21 +33,18 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref PublicSubnet1
-            - !Ref PublicSubnet2
             - !Ref PrivateSubnet1
             - !Ref PrivateSubnet2
           SecurityGroups:
-            - !Ref PublicHTTPSecurityGroup
+            - !Ref PrivateSecurityGroup
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 50
       DesiredCount: 1
       TaskDefinition: !Ref TaskDefinition
-      LoadBalancers:
-        - ContainerName: !Sub ${AWS::StackName}-hello-world
-          ContainerPort: 3000
-          TargetGroupArn: !Ref PublicLBTargetGroup
+      ServiceRegistries:
+        - RegistryArn: !GetAtt ServiceDiscoveryService.Arn
+          Port: 3000
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -92,6 +88,30 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: containerlog
 
+  PrivateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the private subnet
+      VpcId: !Ref VPC
+
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: !Sub ${AWS::StackName}-private
+      Description: Internal, private service discovery namespace
+      Vpc: !Ref VPC
+
+  # Keeps track of the list of tasks for the service
+  ServiceDiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      Name: !Sub ${AWS::StackName}service-discovery
+      DnsConfig:
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+        DnsRecords:
+          - TTL: 0
+            Type: SRV
+
   ECSScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
@@ -131,7 +151,8 @@ Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /ecs/fargate/${AWS::StackName}-hello-world
+      LogGroupName: !Sub "${AWS::StackName}-container-logs"
+      RetentionInDays: 1
 
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -176,6 +197,6 @@ Outputs:
   ServiceName:
     Description: Amazon ECS Service Name
     Value: !GetAtt Service.Name
-  FQDN:
+  Endpoint:
     Description: URL for your application
-    Value: !Sub "http://${PublicLoadBalancer.DNSName}/"
+    Value: !GetAtt ApiGateway.ApiEndpoint
