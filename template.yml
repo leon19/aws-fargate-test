@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: AWS Fargate with VPC and ALB
 
@@ -46,7 +46,7 @@ Resources:
         MaximumPercent: 200
         MinimumHealthyPercent: 50
       DesiredCount: 1
-      TaskDefinition: !Ref "TaskDefinition"
+      TaskDefinition: !Ref TaskDefinition
       LoadBalancers:
         - ContainerName: !Sub ${AWS::StackName}-hello-world
           ContainerPort: 3000
@@ -99,14 +99,10 @@ Resources:
     Properties:
       MaxCapacity: 4
       MinCapacity: 1
-      RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
       ServiceNamespace: ecs
-      ScalableDimension: 'ecs:service:DesiredCount'
-      ResourceId: !Join
-        - /
-        - - service
-          - !Ref Cluster
-          - !GetAtt Service.Name
+      ScalableDimension: "ecs:service:DesiredCount"
+      ResourceId: !Sub "service/${Cluster}/${Service}"
 
   ServiceScalingPolicyCPU:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
@@ -148,7 +144,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service: [ecs-tasks.amazonaws.com]
-            Action: ['sts:AssumeRole']
+            Action: ["sts:AssumeRole"]
             Condition:
               ArnLike:
                 aws:SourceArn: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:*
@@ -167,7 +163,7 @@ Resources:
           - Effect: Allow
             Principal:
               Service: [ecs-tasks.amazonaws.com]
-            Action: ['sts:AssumeRole']
+            Action: ["sts:AssumeRole"]
             Condition:
               ArnLike:
                 aws:SourceArn: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:*

@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: VPC
 
 Mappings:
@@ -37,7 +37,7 @@ Resources:
   VPCInternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref "VPC"
+      VpcId: !Ref VPC
       InternetGatewayId: !Ref VPCInternetGateway
 
   # Public Subnet
@@ -48,7 +48,7 @@ Resources:
         Fn::Select:
           - 0
           - Fn::GetAZs: { Ref: "AWS::Region" }
-      VpcId: !Ref "VPC"
+      VpcId: !Ref VPC
       CidrBlock: !FindInMap ["SubnetConfig", "Public1", "CIDR"]
       MapPublicIpOnLaunch: true
       Tags:
@@ -101,7 +101,7 @@ Resources:
         Fn::Select:
           - 1
           - Fn::GetAZs: { Ref: "AWS::Region" }
-      VpcId: !Ref "VPC"
+      VpcId: !Ref VPC
       CidrBlock: !FindInMap ["SubnetConfig", "Public2", "CIDR"]
       MapPublicIpOnLaunch: true
       Tags:
@@ -154,8 +154,8 @@ Resources:
       AvailabilityZone:
         Fn::Select:
           - 0
-          - Fn::GetAZs: {Ref: 'AWS::Region'}
-      VpcId: !Ref 'VPC'
+          - Fn::GetAZs: { Ref: "AWS::Region" }
+      VpcId: !Ref VPC
       CidrBlock: !FindInMap ["SubnetConfig", "Private1", "CIDR"]
       Tags:
         - Key: Name
@@ -188,8 +188,8 @@ Resources:
       AvailabilityZone:
         Fn::Select:
           - 1
-          - Fn::GetAZs: {Ref: 'AWS::Region'}
-      VpcId: !Ref 'VPC'
+          - Fn::GetAZs: { Ref: "AWS::Region" }
+      VpcId: !Ref VPC
       CidrBlock: !FindInMap ["SubnetConfig", "Private2", "CIDR"]
       Tags:
         - Key: Name
@@ -235,7 +235,7 @@ Resources:
     Properties:
       #  Check if your application is healthy within 20 = 10*2 seconds, compared to 2.5 mins = 30*5 seconds.
       HealthCheckIntervalSeconds: 10 # Default is 30.
-      HealthyThresholdCount: 2       # Default is 5.
+      HealthyThresholdCount: 2 # Default is 5.
       HealthCheckTimeoutSeconds: 5
       HealthCheckEnabled: true
       HealthCheckPath: "/healthz"
