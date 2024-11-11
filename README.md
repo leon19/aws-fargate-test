@@ -8,6 +8,7 @@ Inspired from [this](https://containersonaws.com/pattern/sam-fargate) blog post.
 
 - AWS CLI
 - AWS SAM CLI
+- AWS Rain
 - Docker
 
 ## Deploy

@@ -45,6 +45,9 @@ sam.deploy() {
   # The application relies on the existence of the Docker image in ECR
   # Otherwise, the deployment will never reach the created state
   # We pushed the image to ECR to ensure it exists before deploying the application
+
+  rain merge $(find templates -iname '*.yml') > template.yml
+
   echo "Deploying the application"
   echo "  - ImageName: $DOCKER_IMAGE_NAME"
   echo "  - ImageTag: $DOCKER_IMAGE_TAG"

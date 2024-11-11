@@ -11,11 +11,6 @@ Parameters:
     Type: String
 
 Resources:
-  VPC:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: ./template-vpc.yml
-
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -25,6 +20,9 @@ Resources:
 
   Service:
     Type: AWS::ECS::Service
+    DependsOn:
+      - PublicLoadBalancer
+      - MemoryDBCluster
     Properties:
       ServiceName: !Sub ${AWS::StackName}-hello-world
       Cluster: !Ref Cluster
@@ -36,12 +34,12 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !GetAtt VPC.Outputs.PublicSubnet1
-            - !GetAtt VPC.Outputs.PublicSubnet2
-            - !GetAtt VPC.Outputs.PrivateSubnet1
-            - !GetAtt VPC.Outputs.PrivateSubnet2
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
           SecurityGroups:
-            - !GetAtt VPC.Outputs.SG
+            - !Ref PublicHTTPSecurityGroup
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 50
@@ -50,7 +48,7 @@ Resources:
       LoadBalancers:
         - ContainerName: !Sub ${AWS::StackName}-hello-world
           ContainerPort: 3000
-          TargetGroupArn: !GetAtt VPC.Outputs.LB
+          TargetGroupArn: !Ref PublicLBTargetGroup
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -78,13 +76,13 @@ Resources:
             Timeout: 5
             Retries: 3
             StartPeriod: 5
-          PortMappings:
-            - ContainerPort: 3000
           Environment:
             - Name: NODE_ENV
               Value: production
             - Name: VALKEY_URI
               Value: !Sub "valkey://${MemoryDBCluster.ClusterEndpoint.Address}:6379"
+          PortMappings:
+            - ContainerPort: 3000
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -102,7 +100,7 @@ Resources:
       RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
       ServiceNamespace: ecs
       ScalableDimension: "ecs:service:DesiredCount"
-      ResourceId: !Sub "service/${Cluster}/${Service}"
+      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
 
   ServiceScalingPolicyCPU:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
@@ -171,42 +169,6 @@ Resources:
                 aws:SourceAccount: !Ref AWS::AccountId
       Path: /
 
-  MemoryDBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: MemoryDB security group
-      VpcId: !GetAtt VPC.Outputs.VPCID
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 6379
-          ToPort: 6379
-          CidrIp: 0.0.0.0/0
-
-  MemoryDBSubnetGroup:
-    Type: AWS::MemoryDB::SubnetGroup
-    Properties:
-      Description: MemoryDB subnet group
-      SubnetGroupName: !Sub ${AWS::StackName}-memory-db-subnet-group
-      SubnetIds:
-        - !GetAtt VPC.Outputs.PrivateSubnet1
-        - !GetAtt VPC.Outputs.PrivateSubnet2
-
-  MemoryDBCluster:
-    Type: AWS::MemoryDB::Cluster
-    Properties:
-      ClusterName: !Sub ${AWS::StackName}-valkey
-      Description: Valkey cluster
-      Engine: Valkey
-      EngineVersion: 7.2
-      ACLName: open-access
-      NodeType: db.t4g.small
-      NumReplicasPerShard: 1
-      NumShards: 1
-      SecurityGroupIds:
-        - !GetAtt MemoryDBSecurityGroup.GroupId
-      SubnetGroupName: !Ref MemoryDBSubnetGroup
-      TLSEnabled: true
-
 Outputs:
   ClusterName:
     Description: Amazon ECS Cluster Name
@@ -216,7 +178,4 @@ Outputs:
     Value: !GetAtt Service.Name
   FQDN:
     Description: URL for your application
-    Value: !GetAtt VPC.Outputs.PublicLBFQDN
-  ValkeyURI:
-    Description: URI for Valkey
-    Value: !Sub "valkey://${MemoryDBCluster.ClusterEndpoint.Address}:6379"
+    Value: !Sub "http://${PublicLoadBalancer.DNSName}/"

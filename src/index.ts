@@ -38,6 +38,10 @@ function handleRequest(request: IncomingMessage, response: ServerResponse) {
     // biome-ignore lint/suspicious/noConsoleLog: Allow console.log for request duration
     console.log(`[${time}] ${method} ${path} ${status} ${readableDuration}`);
 
+    if (path === '/healthz' || path === '/requests') {
+      return;
+    }
+
     try {
       await requestStore.saveOne({
         path,

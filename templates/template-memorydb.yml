@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  MemoryDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MemoryDB security group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 0.0.0.0/0
+
+  MemoryDBSubnetGroup:
+    Type: AWS::MemoryDB::SubnetGroup
+    Properties:
+      Description: MemoryDB subnet group
+      SubnetGroupName: !Sub ${AWS::StackName}-memory-db-subnet-group
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  MemoryDBCluster:
+    Type: AWS::MemoryDB::Cluster
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-valkey
+      Description: Valkey cluster
+      Engine: Valkey
+      EngineVersion: 7.2
+      ACLName: open-access
+      NodeType: db.t4g.small
+      NumReplicasPerShard: 1
+      NumShards: 1
+      SecurityGroupIds:
+        - !GetAtt MemoryDBSecurityGroup.GroupId
+      SubnetGroupName: !Ref MemoryDBSubnetGroup
+      TLSEnabled: true

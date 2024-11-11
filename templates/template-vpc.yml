@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: VPC
+
 
 Mappings:
   SubnetConfig:
@@ -233,9 +233,8 @@ Resources:
   PublicLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      #  Check if your application is healthy within 20 = 10*2 seconds, compared to 2.5 mins = 30*5 seconds.
-      HealthCheckIntervalSeconds: 10 # Default is 30.
-      HealthyThresholdCount: 2 # Default is 5.
+      HealthCheckIntervalSeconds: 10
+      HealthyThresholdCount: 2
       HealthCheckTimeoutSeconds: 5
       HealthCheckEnabled: true
       HealthCheckPath: "/healthz"
@@ -250,7 +249,7 @@ Resources:
       IpAddressType: ipv4
 
   PublicLBListener:
-    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
         - Type: forward
@@ -284,25 +283,3 @@ Resources:
       FromPort: 80
       ToPort: 80
       GroupId: !Ref PublicHTTPSecurityGroup
-
-Outputs:
-  PublicLBFQDN:
-    Value: !Join
-      - ""
-      - - "http://"
-        - !GetAtt PublicLoadBalancer.DNSName
-        - "/"
-  VPCID:
-    Value: !Ref VPC
-  PublicSubnet1:
-    Value: !Ref PublicSubnet1
-  PublicSubnet2:
-    Value: !Ref PublicSubnet2
-  PrivateSubnet1:
-    Value: !Ref PrivateSubnet1
-  PrivateSubnet2:
-    Value: !Ref PrivateSubnet2
-  LB:
-    Value: !Ref PublicLBTargetGroup
-  SG:
-    Value: !Ref PublicHTTPSecurityGroup
